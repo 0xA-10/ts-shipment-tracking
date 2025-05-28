@@ -63,7 +63,7 @@ import { track, TrackingInfo } from "ts-shipment-tracking";
 
 Example output:
 
-```jsonc
+```
 {
   events: [
     {

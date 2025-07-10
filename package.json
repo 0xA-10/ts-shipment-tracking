@@ -1,12 +1,12 @@
 {
   "name": "ts-shipment-tracking",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Unified shipment tracking data from FedEx, UPS, and USPS APIs.",
   "main": "dist/index",
   "types": "dist/index",
   "scripts": {
-    "prepublish": "npm run clean && tsc -p . --declaration",
-    "watch": "tsc -w -p .",
+    "prepublish": "npm run clean && tsc",
+    "watch": "tsc -w",
     "clean": "rm -rf dist",
     "test": "npx jest",
     "e2e": "set -x NODE_NO_WARNINGS 1; nodemon --watch . --watch .env e2e.ts"
@@ -30,7 +30,8 @@
   "dependencies": {
     "axios": "^1.7.7",
     "date-fns": "^2.22.1",
-    "ts-tracking-number": "^1.0.13"
+    "ts-tracking-number": "^1.0.13",
+    "tycelium": "^0.1.0"
   },
   "devDependencies": {
     "@tsconfig/node18": "^18.2.2",

@@ -3,6 +3,43 @@ import { Courier, ParseOptions, TrackingEvent, TrackingStatus } from "../types";
 import { fedex } from "ts-tracking-number";
 import axios from "axios";
 
+// source: https://developer.fedex.com/api/en-us/catalog/track/v1/docs.html#operation/Track%20by%20Tracking%20Number
+type ErrorResponse = {
+  errors: [
+    {
+      code: string;
+      message: string;
+    }
+  ];
+};
+type SuccessResponse = {
+  output: {
+    completeTrackResults: Array<{
+      trackingNumber: "123456789012";
+      trackResults: Array<Shipment>;
+    }>;
+  };
+};
+type TrackingResponse = SuccessResponse | ErrorResponse;
+
+type Shipment = {
+  scanEvents: Array<TrackDetails>;
+  estimatedDeliveryTimeWindow: {
+    window: {
+      begins: string; //"2021-10-01T08:00:00"
+      ends: string; //"2021-10-15T00:00:00-06:00"
+    };
+    type: string; //"ESTIMATED_DELIVERY"
+  };
+  standardTransitTimeWindow: {
+    window: {
+      begins: string; //"2021-10-01T08:00:00"
+      ends: string; //"2021-10-15T00:00:00-06:00"
+    };
+    type: string; //"ESTIMATED_DELIVERY"
+  };
+};
+
 type TrackDetails = DeepPartial<{
   eventType: keyof typeof statusCodes;
   eventDescription: string;
@@ -53,10 +90,10 @@ const getTrackingEvent = ({ scanLocation, eventDescription, eventType, date }: T
   time: date ? Date.parse(date) : undefined,
 });
 
-const parseOptions: ParseOptions = {
-  getShipment: (response) => response.output.completeTrackResults[0].trackResults[0],
+const parseOptions: ParseOptions<TrackingResponse, Shipment> = {
+  getShipment: (response) => (response as SuccessResponse).output.completeTrackResults[0].trackResults[0],
 
-  checkForError: (response) => response.errors,
+  checkForError: (response) => Boolean((response as ErrorResponse).errors),
 
   getTrackingEvents: (shipment) => shipment.scanEvents.map(getTrackingEvent),
 
@@ -73,7 +110,7 @@ const parseOptions: ParseOptions = {
   },
 };
 
-const fetchTracking = async (baseURL: string, trackingNumber: string) => {
+const fetchTracking = async (baseURL: string, trackingNumber: string): Promise<TrackingResponse> => {
   const token = await clientCredentialsTokenRequest({
     url: `${baseURL}/oauth/token`,
 
@@ -96,7 +133,7 @@ const fetchTracking = async (baseURL: string, trackingNumber: string) => {
   return data;
 };
 
-export const FedEx: Courier<"FedEx", "fedex"> = {
+export const FedEx: Courier<"FedEx", "fedex", TrackingResponse, Shipment> = {
   name: "FedEx",
   code: "fedex",
   requiredEnvVars: ["FEDEX_CLIENT_ID", "FEDEX_CLIENT_SECRET"],

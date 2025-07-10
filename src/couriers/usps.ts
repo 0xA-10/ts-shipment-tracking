@@ -3,6 +3,36 @@ import { Courier, ParseOptions, TrackingEvent, TrackingStatus } from "../types";
 import { s10, usps } from "ts-tracking-number";
 import axios from "axios";
 
+// source: https://developer.usps.com/trackingv3#tag/Resources/operation/get-package-tracking
+type ErrorResponse = {
+  error: {
+    code: string;
+    message: string;
+    errors: Array<{
+      status: string;
+      code: string;
+      title: string;
+      detail: string;
+    }>;
+  };
+};
+type SuccessResponse = Shipment;
+type TrackingResponse = SuccessResponse | ErrorResponse;
+
+type Shipment = {
+  trackingNumber: string;
+  expectedDeliveryTimeStamp: string; //"2019-08-24T14:15:22Z"
+  trackingEvents: Array<{
+    name: string;
+    eventCode: keyof typeof statusCodes;
+    eventCity: string;
+    eventState: string;
+    eventCountry: string;
+    eventZIP: string;
+    GMTTimestamp: string; //"2024-04-04T14:03:12.041Z"
+  }>;
+};
+
 // prettier-ignore
 const statusCodes = reverseOneToManyDictionary({
   [TrackingStatus.LABEL_CREATED]: [
@@ -32,7 +62,6 @@ type TrackInfo = DeepPartial<{
   eventState: string;
   eventCountry: string;
   eventZIP: string;
-  EventDate: string;
   GMTTimestamp: string;
 }>;
 
@@ -56,17 +85,17 @@ const getTrackingEvent = ({
   time: GMTTimestamp ? Date.parse(GMTTimestamp) : undefined,
 });
 
-const parseOptions: ParseOptions = {
-  getShipment: (response) => response,
+const parseOptions: ParseOptions<TrackingResponse, Shipment> = {
+  getShipment: (response) => response as Shipment,
 
-  checkForError: (response) => response.error,
+  checkForError: (response) => Boolean((response as ErrorResponse).error),
 
-  getTrackingEvents: (shipment) => shipment.eventSummaries.map(getTrackingEvent),
+  getTrackingEvents: (shipment) => shipment.trackingEvents.map(getTrackingEvent),
 
   getEstimatedDeliveryTime: (shipment) => Date.parse(shipment.expectedDeliveryTimeStamp),
 };
 
-const fetchTracking = async (baseURL: string, trackingNumber: string) => {
+const fetchTracking = async (baseURL: string, trackingNumber: string): Promise<TrackingResponse> => {
   // Lazy, in the future it would be nice to make OAuth/Environments more configurable
   const isDevEnv = baseURL.startsWith("https://api-cat");
 
@@ -85,7 +114,7 @@ const fetchTracking = async (baseURL: string, trackingNumber: string) => {
   return data;
 };
 
-export const USPS: Courier<"USPS", "usps"> = {
+export const USPS: Courier<"USPS", "usps", TrackingResponse, Shipment> = {
   name: "USPS",
   code: "usps",
   requiredEnvVars: ["USPS_DEV_CLIENT_ID", "USPS_DEV_CLIENT_SECRET", "USPS_PROD_CLIENT_ID", "USPS_PROD_CLIENT_SECRET"],

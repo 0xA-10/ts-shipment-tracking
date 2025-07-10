@@ -5,6 +5,43 @@ import { ups } from "ts-tracking-number";
 import axios from "axios";
 import { randomUUID } from "crypto";
 
+// source: https://developer.ups.com/tag/Tracking?loc=en_US#operation/getSingleTrackResponseUsingGET
+type ErrorResponse = {
+  response: {
+    errors: Array<{
+      code: string;
+      message: string;
+    }>;
+  };
+};
+type SuccessResponse = {
+  trackResponse: {
+    shipment: Array<{
+      package: Array<Shipment>;
+      warnings: Array<{
+        code: string;
+        message: string;
+      }>;
+    }>;
+  };
+};
+type TrackingResponse = SuccessResponse | ErrorResponse;
+
+type Shipment = {
+  activity: Array<ShipmentPackage>;
+  deliveryDate: Array<{
+    date: string;
+    type: string;
+  }>;
+  deliveryTime: {
+    endTime: string;
+    startTime: string;
+    type: string;
+  };
+  statusCode: string;
+  trackingNumber: string;
+};
+
 type ShipmentPackage = DeepPartial<{
   status: {
     description: string;
@@ -80,7 +117,7 @@ const getTrackingEvent = ({ date, location, status, time }: ShipmentPackage): Tr
   time: getTime({ date, time }),
 });
 
-const getEstimatedDeliveryTime = (shipment: any): number | undefined => {
+const getEstimatedDeliveryTime = (shipment: Shipment): number | undefined => {
   if ("EDW" !== shipment.deliveryTime?.type) {
     return;
   }
@@ -91,19 +128,22 @@ const getEstimatedDeliveryTime = (shipment: any): number | undefined => {
   return getTime({ date, time });
 };
 
-const parseOptions: ParseOptions = {
-  getShipment: (response) => response.trackResponse?.shipment?.[0]?.package?.[0],
+const parseOptions: ParseOptions<TrackingResponse, Shipment> = {
+  getShipment: (response) => (response as SuccessResponse).trackResponse?.shipment?.[0]?.package?.[0],
 
   checkForError: (response) =>
-    response.response?.errors?.[0] ||
-    "Tracking Information Not Found" === response.trackResponse?.shipment?.[0]?.warnings?.[0]?.message,
+    Boolean(
+      (response as ErrorResponse).response?.errors?.[0] ||
+        "Tracking Information Not Found" ===
+          (response as SuccessResponse).trackResponse?.shipment?.[0]?.warnings?.[0]?.message
+    ),
 
   getTrackingEvents: (shipment) => shipment.activity.map(getTrackingEvent),
 
   getEstimatedDeliveryTime,
 };
 
-const fetchTracking = async (baseURL: string, trackingNumber: string) => {
+const fetchTracking = async (baseURL: string, trackingNumber: string): Promise<TrackingResponse> => {
   const token = await clientCredentialsTokenRequest({
     url: `${baseURL}/security/v1/oauth/token`,
 
@@ -124,7 +164,7 @@ const fetchTracking = async (baseURL: string, trackingNumber: string) => {
   return data;
 };
 
-export const UPS: Courier<"UPS", "ups"> = {
+export const UPS: Courier<"UPS", "ups", TrackingResponse, Shipment> = {
   name: "UPS",
   code: "ups",
   requiredEnvVars: ["UPS_CLIENT_ID", "UPS_CLIENT_SECRET"],

@@ -4,9 +4,9 @@ import { assertValidCode, courierCodeMap, getCourierCode, getEnvUrl } from "./ut
 
 export * from "./types";
 
-const parseTrackInfo = <CourierName, CourierCode>(
-  response: any,
-  { name: courierName, parseOptions }: Courier<CourierName, CourierCode>
+const parseTrackInfo = <CourierName, CourierCode, Response, Shipment>(
+  response: Response,
+  { name: courierName, parseOptions }: Courier<CourierName, CourierCode, Response, Shipment>
 ): TrackingInfo => {
   const shipment = parseOptions.getShipment(response);
 
@@ -38,7 +38,7 @@ const parseTrackInfo = <CourierName, CourierCode>(
 };
 
 const trackForCourier = async <CourierName, CourierCode>(
-  courier: Courier<CourierName, CourierCode>,
+  courier: Courier<CourierName, CourierCode, any, any>,
   trackingNumber: string,
   options?: TrackingOptions
 ): Promise<TrackingInfo> => {
@@ -54,25 +54,20 @@ const trackForCourier = async <CourierName, CourierCode>(
   const { fetchTracking, urls } = courier.fetchOptions;
   const url = getEnvUrl({ urls, explicitEnv: options?.env });
 
-  const response = await (async () => {
-    try {
-      const res = await fetchTracking(url, trackingNumber);
-      return res;
-    } catch (err) {
-      /**
-       * Unwrap Axios response error data
-       */
-      if ((err as AxiosError).response?.data) {
-        throw Error(JSON.stringify((err as AxiosError).response!.data));
-      }
+  try {
+    const response = await fetchTracking(url, trackingNumber);
 
-      throw err;
+    return parseTrackInfo(response, courier);
+  } catch (err) {
+    /**
+     * Unwrap Axios response error data
+     */
+    if ((err as AxiosError).response?.data) {
+      throw Error(JSON.stringify((err as AxiosError).response!.data));
     }
-  })();
 
-  const trackingInfo = parseTrackInfo(response, courier);
-
-  return trackingInfo;
+    throw err;
+  }
 };
 
 export const track = async (trackingNumber: string, options?: TrackingOptions): Promise<TrackingInfo> => {

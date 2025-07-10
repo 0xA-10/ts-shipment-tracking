@@ -32,11 +32,11 @@ export function assertValidCode(value: string | undefined): asserts value is key
   }
 }
 
-export const getEnvUrl = ({
+export const getEnvUrl = <TrackingResponse>({
   urls,
   explicitEnv,
 }: {
-  urls: FetchOptions["urls"];
+  urls: FetchOptions<TrackingResponse>["urls"];
   explicitEnv?: TrackingOptions["env"];
 }) => {
   if (explicitEnv) {

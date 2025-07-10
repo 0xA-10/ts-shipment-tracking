@@ -1,6 +1,6 @@
 {
   "name": "ts-shipment-tracking",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Unified shipment tracking data from FedEx, UPS, and USPS APIs.",
   "main": "dist/index",
   "types": "dist/index",

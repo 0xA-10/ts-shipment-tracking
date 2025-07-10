@@ -51,42 +51,42 @@ export type TrackingOptions = {
   env?: "development" | "production";
 };
 
-export type FetchOptions = {
+export type FetchOptions<TrackingResponse> = {
   urls: {
     dev: string;
     prod: string;
   };
 
-  fetchTracking: (url: string, trackingNumber: string) => ReturnType<typeof fetch>;
+  fetchTracking: (url: string, trackingNumber: string) => Promise<TrackingResponse>;
 };
 
-export type ParseOptions = {
+export type ParseOptions<TrackingResponse, Shipment> = {
   /**
    * Retrieves the item which represents the shipment from the tracking response.
    */
-  getShipment: (response: any) => any;
+  getShipment: (response: TrackingResponse) => Shipment;
 
   /**
    * A function which returns true if an error is detected in either the entire json response
    * or the shipment item (convenience).
    */
-  checkForError: (response: any, shipment: any) => boolean;
+  checkForError: (response: TrackingResponse, shipment: Shipment) => boolean;
 
-  getTrackingEvents: (shipment: any) => TrackingEvent[];
+  getTrackingEvents: (shipment: Shipment) => TrackingEvent[];
 
-  getEstimatedDeliveryTime?: (shipment: any) => TrackingInfo["estimatedDeliveryTime"];
+  getEstimatedDeliveryTime?: (shipment: Shipment) => TrackingInfo["estimatedDeliveryTime"];
 };
 
-export type Courier<Name, Code> = {
+export type Courier<Name, Code, TrackingResponse, Shipment> = {
   name: Name;
 
   code: Code;
 
   requiredEnvVars?: string[];
 
-  fetchOptions: FetchOptions;
+  fetchOptions: FetchOptions<TrackingResponse>;
 
-  parseOptions: ParseOptions;
+  parseOptions: ParseOptions<TrackingResponse, Shipment>;
 
   tsTrackingNumberCouriers: readonly TrackingCourier[];
 };

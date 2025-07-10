@@ -15,7 +15,7 @@ type ErrorResponse = {
 type SuccessResponse = {
   output: {
     completeTrackResults: Array<{
-      trackingNumber: "123456789012";
+      trackingNumber: string; //"123456789012";
       trackResults: Array<Shipment>;
     }>;
   };

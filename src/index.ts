@@ -1,82 +1,49 @@
-import { AxiosError } from "axios";
-import { Courier, TrackingInfo, TrackingOptions } from "./types";
-import { assertValidCode, courierCodeMap, getCourierCode, getEnvUrl } from "./utils";
+// v2 API
+export { ShipmentTracker, createTracker } from "./tracker";
+export { BaseProvider } from "./providers/base-provider";
+export type { OAuthConfig, ProviderConfig, BaseProviderOptions } from "./providers/base-provider";
+export { FedExProvider, UPSProvider, USPSProvider } from "./providers";
+export type { FedExProviderOptions, FedExUrl } from "./providers/fedex-provider";
+export type { UPSProviderOptions, UPSUrl } from "./providers/ups-provider";
+export type { USPSProviderOptions, USPSUrl } from "./providers/usps-provider";
 
-export * from "./types";
+// Middleware
+export type { Middleware, NextFunction } from "./middleware/types";
+export {
+  RateLimiterMiddleware,
+  CacheMiddleware,
+  MemoryCacheAdapter,
+  RetryMiddleware,
+  CircuitBreakerMiddleware,
+  LoggerMiddleware,
+} from "./middleware";
+export type {
+  CacheAdapter,
+  CacheOptions,
+  RateLimiterOptions,
+  RetryOptions,
+  CircuitBreakerOptions,
+  LoggerOptions,
+} from "./middleware";
 
-const parseTrackInfo = <CourierName, CourierCode, Response, Shipment>(
-  response: Response,
-  { name: courierName, parseOptions }: Courier<CourierName, CourierCode, Response, Shipment>
-): TrackingInfo => {
-  const shipment = parseOptions.getShipment(response);
+// Errors
+export { TrackingError, ProviderError, AuthenticationError } from "./errors";
 
-  if (parseOptions.checkForError(response, shipment)) {
-    throw new Error(
-      `Error found in the following ${courierName} tracking response:
+// Types
+export {
+  TrackingStatus,
+  type TrackingEvent,
+  type TrackingInfo,
+  type TrackingResult,
+  type TrackOptions,
+  type BatchTrackingItem,
+  type BatchTrackingResult,
+  type TrackerOptions,
+  type CreateTrackerOptions,
+  type MiddlewareContext,
+  type ProviderCredentials,
+} from "./types";
 
-    ${JSON.stringify(response)}
-`
-    );
-  }
-
-  if (shipment == null) {
-    throw new Error(
-      `"getShipment" function ${parseOptions.getShipment.toString()} could not find the shipment in the following ${courierName} tracking response:
-    
-    ${JSON.stringify(response)}
-`
-    );
-  }
-
-  const events = parseOptions.getTrackingEvents(shipment);
-  const estimatedDeliveryTime = parseOptions.getEstimatedDeliveryTime?.(shipment);
-
-  return {
-    events,
-    estimatedDeliveryTime,
-  };
-};
-
-const trackForCourier = async <CourierName, CourierCode>(
-  courier: Courier<CourierName, CourierCode, any, any>,
-  trackingNumber: string,
-  options?: TrackingOptions
-): Promise<TrackingInfo> => {
-  /**
-   * Ensure credentials are present
-   */
-  courier.requiredEnvVars?.forEach((v) => {
-    if (!process.env[v]) {
-      throw new Error(`Environment variable "${v}" must be set in order to use ${courier.name} tracking.`);
-    }
-  });
-
-  const { fetchTracking, urls } = courier.fetchOptions;
-  const url = getEnvUrl({ urls, explicitEnv: options?.env });
-
-  try {
-    const response = await fetchTracking(url, trackingNumber);
-
-    return parseTrackInfo(response, courier);
-  } catch (err) {
-    /**
-     * Unwrap Axios response error data
-     */
-    if ((err as AxiosError).response?.data) {
-      throw Error(JSON.stringify((err as AxiosError).response!.data));
-    }
-
-    throw err;
-  }
-};
-
-export const track = async (trackingNumber: string, options?: TrackingOptions): Promise<TrackingInfo> => {
-  const courierCode = options?.courierCode ?? getCourierCode(trackingNumber);
-
-  assertValidCode(courierCode);
-
-  const courier = courierCodeMap[courierCode];
-  const trackingInfo = await trackForCourier(courier, trackingNumber, options);
-
-  return trackingInfo;
-};
+// Legacy (deprecated) — backward compatibility
+export { track } from "./legacy";
+export type { TrackingOptions, FetchOptions, ParseOptions, Courier, Couriers } from "./types";

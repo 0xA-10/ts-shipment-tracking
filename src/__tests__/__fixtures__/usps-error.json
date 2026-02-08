@@ -1,0 +1,14 @@
+{
+  "error": {
+    "code": "400",
+    "message": "Invalid tracking number",
+    "errors": [
+      {
+        "status": "400",
+        "code": "INVALID_TRACKING_NUMBER",
+        "title": "Invalid Request",
+        "detail": "The tracking number provided is not valid."
+      }
+    ]
+  }
+}

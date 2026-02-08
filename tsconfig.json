@@ -3,7 +3,8 @@
   "extends": "./node_modules/@tsconfig/Node18/tsconfig.json",
   "compilerOptions": {
     "outDir": "dist",
-    "declaration": true
+    "declaration": true,
+    "resolveJsonModule": true
   },
   "include": ["src/**/*"]
 }

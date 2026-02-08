@@ -1,6 +1,6 @@
 {
   "name": "ts-shipment-tracking",
-  "version": "2.0.2",
+  "version": "3.0.0",
   "description": "Unified shipment tracking data from FedEx, UPS, and USPS APIs.",
   "main": "dist/index",
   "types": "dist/index",
@@ -29,9 +29,11 @@
   "license": "MIT",
   "dependencies": {
     "axios": "^1.7.7",
+    "bottleneck": "^2.19.5",
     "date-fns": "^2.22.1",
     "ts-tracking-number": "^1.0.13",
-    "tycelium": "^0.1.0"
+    "tycelium": "^0.1.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tsconfig/node18": "^18.2.2",

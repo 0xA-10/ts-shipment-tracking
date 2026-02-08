@@ -1,0 +1,92 @@
+{
+  "trackResponse": {
+    "shipment": [
+      {
+        "package": [
+          {
+            "activity": [
+              {
+                "status": {
+                  "description": "DELIVERED",
+                  "type": "D"
+                },
+                "location": {
+                  "address": {
+                    "city": "NEW YORK",
+                    "stateProvince": "NY",
+                    "countryCode": "US",
+                    "postalCode": "10001"
+                  }
+                },
+                "date": "20240115",
+                "time": "143000"
+              },
+              {
+                "status": {
+                  "description": "Out For Delivery Today",
+                  "type": "O"
+                },
+                "location": {
+                  "address": {
+                    "city": "NEW YORK",
+                    "stateProvince": "NY",
+                    "countryCode": "US",
+                    "postalCode": "10001"
+                  }
+                },
+                "date": "20240115",
+                "time": "060000"
+              },
+              {
+                "status": {
+                  "description": "In Transit",
+                  "type": "I"
+                },
+                "location": {
+                  "address": {
+                    "city": "LOUISVILLE",
+                    "stateProvince": "KY",
+                    "countryCode": "US",
+                    "postalCode": "40201"
+                  }
+                },
+                "date": "20240114",
+                "time": "100000"
+              },
+              {
+                "status": {
+                  "description": "Shipper created a label, UPS has not received the package yet.",
+                  "type": "M"
+                },
+                "location": {
+                  "address": {
+                    "city": "LOS ANGELES",
+                    "stateProvince": "CA",
+                    "countryCode": "US",
+                    "postalCode": "90001"
+                  }
+                },
+                "date": "20240113",
+                "time": "090000"
+              }
+            ],
+            "deliveryDate": [
+              {
+                "date": "20240115",
+                "type": "DEL"
+              }
+            ],
+            "deliveryTime": {
+              "endTime": "190000",
+              "startTime": "080000",
+              "type": "EDW"
+            },
+            "statusCode": "D",
+            "trackingNumber": "1Z999AA10123456784"
+          }
+        ],
+        "warnings": []
+      }
+    ]
+  }
+}

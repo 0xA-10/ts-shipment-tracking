@@ -1,0 +1,8 @@
+{
+  "errors": [
+    {
+      "code": "TRACKING.TRACKINGNUMBER.NOTFOUND",
+      "message": "Tracking number cannot be found. Please correct the tracking number and try again."
+    }
+  ]
+}

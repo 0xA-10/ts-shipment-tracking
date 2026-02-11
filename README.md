@@ -191,8 +191,8 @@ const tracker = createTracker({
     fedex: {
       url: "https://apis-sandbox.fedex.com", // otherwise gets chosen based on process.env.NODE_ENV
       creds: {
-        clientId: "<client-id>", // otherwise uses process.env.UPS_CLIENT_ID
-        clientSecret: "<client-secret>", // otherwise uses process.env.UPS_CLIENT_SECRET
+        clientId: "<client-id>", // otherwise uses process.env.FEDEX_CLIENT_ID
+        clientSecret: "<client-secret>", // otherwise uses process.env.FEDEX_CLIENT_SECRET
       },
     },
     ups: true, // enabled with defaults

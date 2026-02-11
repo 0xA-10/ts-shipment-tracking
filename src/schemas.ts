@@ -13,5 +13,5 @@ export const TrackingResultSchema = z.object({
   estimatedDeliveryTime: z.number().optional(),
   courier: z.string(),
   trackingNumber: z.string(),
-  raw: z.unknown().optional(),
+  raw: z.unknown(),
 });

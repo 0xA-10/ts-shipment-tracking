@@ -1,17 +1,19 @@
 import { CacheMiddleware, MemoryCacheAdapter } from "../../middleware/cache";
 import { MiddlewareContext, TrackingResult, TrackingStatus } from "../../types";
+import { MockProvider } from "../helpers/mock-provider";
 
 const makeResult = (trackingNumber = "123"): TrackingResult => ({
   events: [{ status: TrackingStatus.DELIVERED, label: "Delivered" }],
   courier: "test",
   trackingNumber,
+  raw: {},
 });
 
 const makeCtx = (trackingNumber = "123"): MiddlewareContext =>
   ({
     trackingNumber,
     courierCode: "test",
-    provider: {} as any,
+    provider: new MockProvider(),
     options: {},
   });
 
@@ -26,8 +28,8 @@ describe("MemoryCacheAdapter", () => {
   it("returns undefined for expired entries", async () => {
     const adapter = new MemoryCacheAdapter();
     await adapter.set("key", makeResult(), 0);
-    // Wait 1ms for expiry
-    await new Promise((r) => setTimeout(r, 1));
+    // Wait 10ms for expiry
+    await new Promise((r) => setTimeout(r, 10));
     expect(await adapter.get("key")).toBeUndefined();
   });
 

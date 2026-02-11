@@ -4,6 +4,7 @@ import { TrackingEvent, TrackingStatus } from "../types";
 import { ProviderError } from "../errors";
 import { fedex } from "ts-tracking-number";
 import axios from "axios";
+import type { components } from "./generated/fedex";
 
 // ─── FedEx Provider Types ─────────────────────────────────
 
@@ -23,54 +24,16 @@ export type FedExProviderOptions = BaseProviderOptions & {
   scope?: string;
 };
 
+// ─── Generated API Types ──────────────────────────────────
 // source: https://developer.fedex.com/api/en-us/catalog/track/v1/docs.html#operation/Track%20by%20Tracking%20Number
-type ErrorResponse = {
-  errors: [
-    {
-      code: string;
-      message: string;
-    }
-  ];
-};
-type SuccessResponse = {
-  output: {
-    completeTrackResults: Array<{
-      trackingNumber: string;
-      trackResults: Array<Shipment>;
-    }>;
-  };
-};
+
+type ErrorResponse = components["schemas"]["ErrorResponseVO"];
+type SuccessResponse = components["schemas"]["TrkcResponseVO_TrackingNumber"];
 type TrackingResponse = SuccessResponse | ErrorResponse;
 
-type Shipment = {
-  scanEvents: Array<TrackDetails>;
-  estimatedDeliveryTimeWindow: {
-    window: {
-      begins: string;
-      ends: string;
-    };
-    type: string;
-  };
-  standardTransitTimeWindow: {
-    window: {
-      begins: string;
-      ends: string;
-    };
-    type: string;
-  };
-};
-
-type TrackDetails = DeepPartial<{
-  eventType: keyof typeof statusCodes;
-  eventDescription: string;
-  scanLocation: {
-    city: string;
-    stateOrProvinceCode: string;
-    countryCode: string;
-    postalCode: string;
-  };
-  date: string;
-}>;
+// Map generated types to existing internal names for backward compatibility
+type Shipment = components["schemas"]["TrackResult"];
+type TrackDetails = DeepPartial<components["schemas"]["ScanEvent"]>;
 
 // prettier-ignore
 const statusCodes = reverseOneToManyDictionary({
@@ -99,7 +62,7 @@ const statusCodes = reverseOneToManyDictionary({
 } as const);
 
 const getTrackingEvent = ({ scanLocation, eventDescription, eventType, date }: TrackDetails): TrackingEvent => ({
-  status: (eventType && statusCodes[eventType]) || undefined,
+  status: eventType ? statusCodes[eventType as keyof typeof statusCodes] : undefined,
   label: eventDescription,
   location: getLocation({
     city: scanLocation?.city,
@@ -181,15 +144,23 @@ export class FedExProvider extends BaseProvider {
 
   protected parseResponse(raw: unknown): { events: TrackingEvent[]; estimatedDeliveryTime?: number } {
     const response = raw as SuccessResponse;
-    const shipment = response.output.completeTrackResults[0].trackResults[0];
+    const shipment = response.output?.completeTrackResults?.[0]?.trackResults?.[0];
 
-    const events = shipment.scanEvents.map(getTrackingEvent);
+    if (!shipment) {
+      throw new ProviderError(`Could not find shipment in FedEx response: ${JSON.stringify(raw)}`, {
+        courier: this.name,
+        trackingNumber: "",
+        raw,
+      });
+    }
+
+    const events = (shipment.scanEvents || []).map(getTrackingEvent);
 
     let estimatedDeliveryTime: number | undefined;
     if (shipment.estimatedDeliveryTimeWindow?.type === "ESTIMATED_DELIVERY") {
-      estimatedDeliveryTime = Date.parse(shipment.estimatedDeliveryTimeWindow.window.begins);
+      estimatedDeliveryTime = Date.parse(shipment.estimatedDeliveryTimeWindow.window?.begins || "");
     } else if (shipment.standardTransitTimeWindow?.type === "ESTIMATED_DELIVERY") {
-      estimatedDeliveryTime = Date.parse(shipment.standardTransitTimeWindow.window.begins);
+      estimatedDeliveryTime = Date.parse(shipment.standardTransitTimeWindow.window?.begins || "");
     }
 
     return { events, estimatedDeliveryTime };

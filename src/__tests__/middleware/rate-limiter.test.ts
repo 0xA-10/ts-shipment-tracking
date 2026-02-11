@@ -1,17 +1,19 @@
 import { RateLimiterMiddleware } from "../../middleware/rate-limiter";
 import { MiddlewareContext, TrackingResult, TrackingStatus } from "../../types";
+import { MockProvider } from "../helpers/mock-provider";
 
 const makeResult = (): TrackingResult => ({
   events: [{ status: TrackingStatus.DELIVERED }],
   courier: "test",
   trackingNumber: "123",
+  raw: {},
 });
 
 const makeCtx = (courierCode = "test"): MiddlewareContext =>
   ({
     trackingNumber: "123",
     courierCode,
-    provider: {} as any,
+    provider: new MockProvider(),
     options: {},
   });
 

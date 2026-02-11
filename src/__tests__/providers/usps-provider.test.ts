@@ -8,6 +8,11 @@ import uspsError from "../__fixtures__/usps-error.json";
 jest.mock("axios");
 const mockedAxios = axios as jest.MockedFunction<typeof axios>;
 
+type USPSEventFixture = {
+  eventZIP?: string;
+  [key: string]: unknown;
+};
+
 describe("USPSProvider", () => {
   let provider: USPSProvider;
 
@@ -30,7 +35,24 @@ describe("USPSProvider", () => {
 
   describe("parseResponse", () => {
     it("parses a successful response", () => {
-      const parsed = (provider as any).parseResponse(uspsSuccess);
+      // Note: Using `as any` to access protected methods for unit testing.
+      // These methods are not part of the public API but need testing to ensure
+      // proper error handling and response parsing behavior.
+      // Wrap in array for v3r2 POST endpoint response format
+      const v3r2Response = [
+        {
+          ...uspsSuccess,
+          deliveryDateExpectation: {
+            expectedDeliveryDate: "2024-01-16",
+          },
+          trackingEvents: uspsSuccess.trackingEvents.map((event: USPSEventFixture) => ({
+            ...event,
+            eventZIPCode: event.eventZIP, // Map old field name to new
+          })),
+        },
+      ];
+
+      const parsed = (provider as any).parseResponse(v3r2Response);
 
       expect(parsed.events).toHaveLength(4);
       expect(parsed.events[0]).toEqual({
@@ -46,7 +68,17 @@ describe("USPSProvider", () => {
     });
 
     it("parses estimated delivery time", () => {
-      const parsed = (provider as any).parseResponse(uspsSuccess);
+      // Wrap in array for v3r2 POST endpoint response format
+      const v3r2Response = [
+        {
+          ...uspsSuccess,
+          deliveryDateExpectation: {
+            expectedDeliveryDate: "2024-01-16T14:00:00Z",
+          },
+        },
+      ];
+
+      const parsed = (provider as any).parseResponse(v3r2Response);
       expect(parsed.estimatedDeliveryTime).toBe(Date.parse("2024-01-16T14:00:00Z"));
     });
   });
@@ -57,64 +89,92 @@ describe("USPSProvider", () => {
     });
 
     it("does not throw on success response", () => {
-      expect(() => (provider as any).checkForError(uspsSuccess)).not.toThrow();
+      // Wrap in array for v3r2 response format
+      expect(() => (provider as any).checkForError([uspsSuccess])).not.toThrow();
     });
   });
 
   describe("track", () => {
     it("orchestrates token fetch and tracking", async () => {
+      // Wrap in array for v3r2 POST endpoint response format
+      const v3r2Response = [
+        {
+          ...uspsSuccess,
+          deliveryDateExpectation: {
+            expectedDeliveryDate: "2024-01-16",
+          },
+          trackingEvents: uspsSuccess.trackingEvents.map((event: USPSEventFixture) => ({
+            ...event,
+            eventZIPCode: event.eventZIP,
+          })),
+        },
+      ];
+
       mockedAxios
         .mockResolvedValueOnce({ data: { access_token: "test-token", expires_in: 3600 } })
-        .mockResolvedValueOnce({ data: uspsSuccess });
+        .mockResolvedValueOnce({ data: v3r2Response });
 
       const result = await provider.track("9400111899223100012927");
 
       expect(result.courier).toBe("usps");
       expect(result.trackingNumber).toBe("9400111899223100012927");
       expect(result.events).toHaveLength(4);
+
+      // Verify POST method and correct URL
+      const trackingCall = mockedAxios.mock.calls[1];
+      expect(trackingCall[0]).toContain("/tracking");
+      expect(trackingCall[1]?.method).toBe("POST");
     });
 
     it("uses sandbox URL when configured", async () => {
-      const devProvider = new USPSProvider({ url: "https://api-cat.usps.com" });
+      const devProvider = new USPSProvider({ url: "https://apis-tem.usps.com/tracking/v3r2" });
+      const v3r2Response = [uspsSuccess];
+
       mockedAxios
         .mockResolvedValueOnce({ data: { access_token: "test-token", expires_in: 3600 } })
-        .mockResolvedValueOnce({ data: uspsSuccess });
+        .mockResolvedValueOnce({ data: v3r2Response });
 
       await devProvider.track("9400111899223100012927");
 
       const tokenCall = mockedAxios.mock.calls[0];
-      expect(tokenCall[0]).toBe("https://api-cat.usps.com/oauth2/v3/token");
+      expect(tokenCall[0]).toBe("https://apis-tem.usps.com/tracking/v3r2/oauth2/v3/token");
     });
 
     it("uses production URL when configured", async () => {
-      const prodProvider = new USPSProvider({ url: "https://api.usps.com" });
+      const prodProvider = new USPSProvider({ url: "https://apis.usps.com/tracking/v3r2" });
+      const v3r2Response = [uspsSuccess];
+
       mockedAxios
         .mockResolvedValueOnce({ data: { access_token: "test-token", expires_in: 3600 } })
-        .mockResolvedValueOnce({ data: uspsSuccess });
+        .mockResolvedValueOnce({ data: v3r2Response });
 
       await prodProvider.track("9400111899223100012927");
 
       const tokenCall = mockedAxios.mock.calls[0];
-      expect(tokenCall[0]).toBe("https://api.usps.com/oauth2/v3/token");
+      expect(tokenCall[0]).toBe("https://apis.usps.com/tracking/v3r2/oauth2/v3/token");
     });
   });
 
   describe("status code mappings", () => {
-    const makeResponse = (eventCode: string) => ({
-      trackingNumber: "9400111899223100012927",
-      expectedDeliveryTimeStamp: "2024-01-16T14:00:00Z",
-      trackingEvents: [
-        {
-          eventType: "Test Event",
-          eventCode,
-          eventCity: "RICHMOND",
-          eventState: "VA",
-          eventCountry: "US",
-          eventZIP: "23220",
-          eventTimestamp: "2024-01-15T19:30:12.041Z",
+    const makeResponse = (eventCode: string) => [
+      {
+        trackingNumber: "9400111899223100012927",
+        deliveryDateExpectation: {
+          expectedDeliveryDate: "2024-01-16",
         },
-      ],
-    });
+        trackingEvents: [
+          {
+            eventType: "Test Event",
+            eventCode,
+            eventCity: "RICHMOND",
+            eventState: "VA",
+            eventCountry: "US",
+            eventZIPCode: "23220", // v3r2 uses eventZIPCode instead of eventZIP
+            eventTimestamp: "2024-01-15T19:30:12.041Z",
+          },
+        ],
+      },
+    ];
 
     it.each([
       ["MA", TrackingStatus.LABEL_CREATED],

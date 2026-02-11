@@ -1,7 +1,7 @@
 import { ShipmentTracker, createTracker } from "../tracker";
 import { BaseProvider } from "../providers/base-provider";
 import { FedExProvider, UPSProvider, USPSProvider } from "../providers";
-import { TrackingStatus, TrackingResult, MiddlewareContext } from "../types";
+import { TrackingStatus, TrackingResult, MiddlewareContext, TrackingEvent } from "../types";
 import { Middleware, NextFunction } from "../middleware/types";
 import { TrackingCourier } from "ts-tracking-number";
 
@@ -24,7 +24,7 @@ class MockProvider extends BaseProvider {
   protected async fetchTrackingData() {
     return {};
   }
-  protected parseResponse(): { events: any[]; estimatedDeliveryTime?: number } {
+  protected parseResponse(): { events: TrackingEvent[]; estimatedDeliveryTime?: number } {
     return {
       events: [{ status: TrackingStatus.DELIVERED, label: "Delivered" }],
       estimatedDeliveryTime: Date.now(),
@@ -37,6 +37,7 @@ class MockProvider extends BaseProvider {
       events: [{ status: TrackingStatus.DELIVERED, label: "Delivered" }],
       courier: this.code,
       trackingNumber,
+      raw: {},
     };
   }
 }
@@ -209,7 +210,7 @@ describe("ShipmentTracker", () => {
         }
 
         async track(trackingNumber: string): Promise<TrackingResult> {
-          return { events: [{ status: TrackingStatus.DELIVERED }], courier: this.code, trackingNumber };
+          return { events: [{ status: TrackingStatus.DELIVERED }], courier: this.code, trackingNumber, raw: {} };
         }
       }
 
@@ -235,16 +236,19 @@ describe("createTracker", () => {
       events: [],
       courier: "fedex",
       trackingNumber: "123",
+      raw: {},
     });
     upsSpy = jest.spyOn(UPSProvider.prototype, "track").mockResolvedValue({
       events: [],
       courier: "ups",
       trackingNumber: "123",
+      raw: {},
     });
     uspsSpy = jest.spyOn(USPSProvider.prototype, "track").mockResolvedValue({
       events: [],
       courier: "usps",
       trackingNumber: "123",
+      raw: {},
     });
   });
 
@@ -336,21 +340,16 @@ describe("createTracker", () => {
   });
 
   it("accepts middleware in options", async () => {
-    const executed = jest.fn();
-    const mw: Middleware = {
-      async execute(_ctx: MiddlewareContext, next: NextFunction) {
-        executed();
-        return next();
-      },
-    };
-
     const tracker = createTracker({
       providers: { fedex: {} },
-      middleware: [mw],
+      middlewares: { cache: true, logger: true },
     });
 
     await tracker.track("123", { courierCode: "fedex" });
-    expect(executed).toHaveBeenCalled();
+    // Verify cache middleware is working by tracking twice
+    await tracker.track("123", { courierCode: "fedex" });
+    // If cache is working, provider should only be called once
+    expect(fedexSpy).toHaveBeenCalledTimes(1);
   });
 
   it("accepts timeout option for providers", () => {

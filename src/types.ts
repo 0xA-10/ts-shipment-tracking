@@ -4,6 +4,11 @@ import type { FedExProviderOptions } from "./providers/fedex-provider";
 import type { UPSProviderOptions } from "./providers/ups-provider";
 import type { USPSProviderOptions } from "./providers/usps-provider";
 import type { Middleware } from "./middleware/types";
+import type { CacheOptions } from "./middleware/cache";
+import type { RetryOptions } from "./middleware/retry";
+import type { RateLimiterOptions } from "./middleware/rate-limiter";
+import type { CircuitBreakerOptions } from "./middleware/circuit-breaker";
+import type { LoggerOptions } from "./middleware/logger";
 
 // ─── v2 Types ────────────────────────────────────────────
 
@@ -56,7 +61,7 @@ export type TrackingInfo = {
 export type TrackingResult = TrackingInfo & {
   courier: string;
   trackingNumber: string;
-  raw?: unknown;
+  raw: unknown;
 };
 
 export type TrackOptions = {
@@ -88,7 +93,13 @@ export type CreateTrackerOptions = {
     ups?: true | UPSProviderOptions;
     usps?: true | USPSProviderOptions;
   };
-  middleware?: Middleware[];
+  middlewares?: {
+    cache?: false | true | CacheOptions;
+    retry?: false | true | RetryOptions;
+    rateLimiter?: false | true | RateLimiterOptions;
+    circuitBreaker?: false | true | CircuitBreakerOptions;
+    logger?: false | true | LoggerOptions;
+  };
 };
 
 // ─── Middleware Context ──────────────────────────────────

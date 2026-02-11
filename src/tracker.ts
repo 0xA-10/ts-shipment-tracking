@@ -4,6 +4,13 @@ import { BaseProvider } from "./providers/base-provider";
 import { FedExProvider, UPSProvider, USPSProvider } from "./providers";
 import { Middleware } from "./middleware/types";
 import {
+  CacheMiddleware,
+  RetryMiddleware,
+  RateLimiterMiddleware,
+  CircuitBreakerMiddleware,
+  LoggerMiddleware,
+} from "./middleware";
+import {
   BatchTrackingItem,
   BatchTrackingResult,
   CreateTrackerOptions,
@@ -126,6 +133,7 @@ export class ShipmentTracker extends EventEmitter {
 
 export function createTracker(options?: CreateTrackerOptions): ShipmentTracker {
   const providers: BaseProvider[] = [];
+  const middleware: Middleware[] = [];
 
   if (options?.providers?.fedex) {
     const config = options.providers.fedex === true ? {} : options.providers.fedex;
@@ -140,8 +148,46 @@ export function createTracker(options?: CreateTrackerOptions): ShipmentTracker {
     providers.push(new USPSProvider(config));
   }
 
+  const mwConfig = options?.middlewares ?? {};
+
+  // RateLimiter: ENABLED BY DEFAULT (protects against API rate limits)
+  if (mwConfig.rateLimiter !== false) {
+    const config = mwConfig.rateLimiter === true || mwConfig.rateLimiter === undefined
+      ? {}
+      : mwConfig.rateLimiter;
+    middleware.push(new RateLimiterMiddleware(config));
+  }
+
+  // Retry: ENABLED BY DEFAULT (handles transient failures)
+  if (mwConfig.retry !== false) {
+    const config = mwConfig.retry === true || mwConfig.retry === undefined
+      ? {}
+      : mwConfig.retry;
+    middleware.push(new RetryMiddleware(config));
+  }
+
+  // CircuitBreaker: ENABLED BY DEFAULT (prevents cascading failures)
+  if (mwConfig.circuitBreaker !== false) {
+    const config = mwConfig.circuitBreaker === true || mwConfig.circuitBreaker === undefined
+      ? {}
+      : mwConfig.circuitBreaker;
+    middleware.push(new CircuitBreakerMiddleware(config));
+  }
+
+  // Cache: OPT-IN (not all use cases benefit from caching)
+  if (mwConfig.cache) {
+    const config = mwConfig.cache === true ? {} : mwConfig.cache;
+    middleware.push(new CacheMiddleware(config));
+  }
+
+  // Logger: OPT-IN (avoid unwanted console spam)
+  if (mwConfig.logger) {
+    const config = mwConfig.logger === true ? {} : mwConfig.logger;
+    middleware.push(new LoggerMiddleware(config));
+  }
+
   return new ShipmentTracker({
     providers,
-    middleware: options?.middleware,
+    middleware,
   });
 }

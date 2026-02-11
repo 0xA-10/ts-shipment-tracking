@@ -1,18 +1,20 @@
 import { CircuitBreakerMiddleware } from "../../middleware/circuit-breaker";
 import { TrackingError } from "../../errors";
 import { MiddlewareContext, TrackingResult, TrackingStatus } from "../../types";
+import { MockProvider } from "../helpers/mock-provider";
 
 const makeResult = (): TrackingResult => ({
   events: [{ status: TrackingStatus.DELIVERED }],
   courier: "test",
   trackingNumber: "123",
+  raw: {},
 });
 
 const makeCtx = (): MiddlewareContext =>
   ({
     trackingNumber: "123",
     courierCode: "test",
-    provider: {} as any,
+    provider: new MockProvider(),
     options: {},
   });
 

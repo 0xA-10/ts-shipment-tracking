@@ -4,12 +4,13 @@ import { TrackingEvent, TrackingStatus } from "../types";
 import { ProviderError } from "../errors";
 import { s10, usps } from "ts-tracking-number";
 import axios from "axios";
+import type { components } from "./generated/usps";
 
 // ─── USPS Provider Types ──────────────────────────────────
 
 export type USPSUrl =
-  | "https://api-cat.usps.com"
-  | "https://api.usps.com"
+  | "https://apis-tem.usps.com/tracking/v3r2"
+  | "https://apis.usps.com/tracking/v3r2"
   | (string & {});
 
 export type USPSProviderOptions = BaseProviderOptions & {
@@ -23,35 +24,18 @@ export type USPSProviderOptions = BaseProviderOptions & {
   scope?: string;
 };
 
+// ─── Generated API Types ──────────────────────────────────
 // source: https://developers.usps.com/trackingv3r2
-type ErrorResponse = {
-  error: {
-    code: string;
-    message: string;
-    errors: Array<{
-      status: string;
-      code: string;
-      title: string;
-      detail: string;
-    }>;
-  };
-};
-type SuccessResponse = Shipment;
-type TrackingResponse = SuccessResponse | ErrorResponse;
+// Using POST /tracking endpoint (v3r2) for comprehensive tracking data
 
-type Shipment = {
-  trackingNumber: string;
-  expectedDeliveryTimeStamp: string;
-  trackingEvents: Array<{
-    eventType: string;
-    eventCode: keyof typeof statusCodes;
-    eventCity: string;
-    eventState: string;
-    eventCountry: string;
-    eventZIP: string;
-    eventTimestamp: string;
-  }>;
-};
+type ErrorResponse = components["schemas"]["ErrorMessage"];
+type SuccessResponse = components["schemas"]["TrackingDetails"]; // Array of TrackingDetail
+type MultiStatusResponse = components["schemas"]["MultiStatusResponse"];
+type TrackingResponse = SuccessResponse | ErrorResponse | MultiStatusResponse;
+
+// Map generated types to existing internal names for backward compatibility
+type USPSTrackingDetail = components["schemas"]["TrackingDetail"];
+type USPSTrackingEvent = components["schemas"]["TrackingEvent"];
 
 // prettier-ignore
 const statusCodes = reverseOneToManyDictionary({
@@ -120,8 +104,8 @@ export class USPSProvider extends BaseProvider {
       timeout: config?.timeout,
       scope: config?.scope ?? "tracking",
       defaultUrls: {
-        dev: "https://api-cat.usps.com",
-        prod: "https://api.usps.com",
+        dev: "https://apis-tem.usps.com/tracking/v3r2",
+        prod: "https://apis.usps.com/tracking/v3r2",
       },
       envVars: {
         clientId: "USPS_CLIENT_ID",
@@ -141,8 +125,19 @@ export class USPSProvider extends BaseProvider {
   }
 
   protected async fetchTrackingData(baseUrl: string, trackingNumber: string, token: string): Promise<TrackingResponse> {
-    const { data } = await axios(`${baseUrl}/tracking/v3/tracking/${trackingNumber}?expand=DETAIL`, {
-      headers: { Authorization: `Bearer ${token}` },
+    const requestBody: components["schemas"]["TrackingRequest"] = [
+      {
+        trackingNumber: trackingNumber,
+      },
+    ];
+
+    const { data } = await axios(`${baseUrl}/tracking`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      data: JSON.stringify(requestBody),
       timeout: this.config.timeout,
     });
 
@@ -151,21 +146,72 @@ export class USPSProvider extends BaseProvider {
 
   protected checkForError(raw: unknown): void {
     const response = raw as TrackingResponse;
+
+    // Check for top-level error response
     if ((response as ErrorResponse).error) {
       throw new ProviderError(
         `Error found in USPS tracking response: ${JSON.stringify(response)}`,
         { courier: this.name, trackingNumber: "", raw }
       );
     }
+
+    // Check for MultiStatusResponse with embedded errors
+    if (Array.isArray(response)) {
+      const multiStatus = response as MultiStatusResponse;
+      const hasError = multiStatus.some((item) => "statusCode" in item && item.statusCode !== "200");
+
+      if (hasError) {
+        const errorItem = multiStatus.find((item) => "statusCode" in item && item.statusCode !== "200");
+        throw new ProviderError(
+          `Error found in USPS tracking response: ${JSON.stringify(errorItem)}`,
+          { courier: this.name, trackingNumber: "", raw }
+        );
+      }
+    }
   }
 
   protected parseResponse(raw: unknown): { events: TrackingEvent[]; estimatedDeliveryTime?: number } {
-    const shipment = raw as Shipment;
+    const response = raw as SuccessResponse;
 
-    const events = shipment.trackingEvents.map(getTrackingEvent);
-    const estimatedDeliveryTime = shipment.expectedDeliveryTimeStamp
-      ? Date.parse(shipment.expectedDeliveryTimeStamp)
-      : undefined;
+    // Extract first tracking detail from array response
+    const trackingDetail: USPSTrackingDetail | undefined = Array.isArray(response) ? response[0] : undefined;
+
+    if (!trackingDetail) {
+      throw new ProviderError(`Could not find tracking detail in USPS response: ${JSON.stringify(raw)}`, {
+        courier: this.name,
+        trackingNumber: "",
+        raw,
+      });
+    }
+
+    // Map new event structure to format expected by getTrackingEvent
+    const events = (trackingDetail.trackingEvents || []).map((event: USPSTrackingEvent) =>
+      getTrackingEvent({
+        eventType: event.eventType,
+        eventCode: event.eventCode as keyof typeof statusCodes,
+        eventCity: event.eventCity,
+        eventState: event.eventState,
+        eventCountry: event.eventCountry,
+        eventZIP: event.eventZIPCode, // Note: field name changed from eventZIP to eventZIPCode
+        eventTimestamp: event.eventTimestamp,
+      })
+    );
+
+    // Map delivery date fields (priority order: expected > predicted > guaranteed)
+    const estimatedDeliveryTime =
+      (trackingDetail.deliveryDateExpectation?.expectedDeliveryDate
+        ? Date.parse(trackingDetail.deliveryDateExpectation.expectedDeliveryDate)
+        : undefined) ||
+      (trackingDetail.deliveryDateExpectation?.predictedDeliveryDate
+        ? Date.parse(trackingDetail.deliveryDateExpectation.predictedDeliveryDate)
+        : undefined) ||
+      (trackingDetail.deliveryDateExpectation?.guaranteedDeliveryDate
+        ? Date.parse(
+            typeof trackingDetail.deliveryDateExpectation.guaranteedDeliveryDate === "string"
+              ? trackingDetail.deliveryDateExpectation.guaranteedDeliveryDate
+              : ""
+          )
+        : undefined);
 
     return { events, estimatedDeliveryTime };
   }

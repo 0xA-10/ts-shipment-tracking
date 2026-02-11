@@ -6,6 +6,7 @@ import { parse } from "date-fns";
 import { ups } from "ts-tracking-number";
 import { randomUUID } from "crypto";
 import axios from "axios";
+import type { components } from "./generated/ups";
 
 // ─── UPS Provider Types ───────────────────────────────────
 
@@ -25,59 +26,16 @@ export type UPSProviderOptions = BaseProviderOptions & {
   scope?: string;
 };
 
+// ─── Generated API Types ──────────────────────────────────
 // source: https://developer.ups.com/tag/Tracking?loc=en_US#operation/getSingleTrackResponseUsingGET
-type ErrorResponse = {
-  response: {
-    errors: Array<{
-      code: string;
-      message: string;
-    }>;
-  };
-};
-type SuccessResponse = {
-  trackResponse: {
-    shipment: Array<{
-      package: Array<Shipment>;
-      warnings: Array<{
-        code: string;
-        message: string;
-      }>;
-    }>;
-  };
-};
+
+type ErrorResponse = components["schemas"]["Response"];
+type SuccessResponse = components["schemas"]["TrackApiResponse"];
 type TrackingResponse = SuccessResponse | ErrorResponse;
 
-type Shipment = {
-  activity: Array<ShipmentPackage>;
-  deliveryDate: Array<{
-    date: string;
-    type: string;
-  }>;
-  deliveryTime: {
-    endTime: string;
-    startTime: string;
-    type: string;
-  };
-  statusCode: string;
-  trackingNumber: string;
-};
-
-type ShipmentPackage = DeepPartial<{
-  status: {
-    description: string;
-    type: keyof typeof statusCodes;
-  };
-  location: {
-    address: {
-      city: string;
-      stateProvince: string;
-      countryCode: string;
-      postalCode: string;
-    };
-  };
-  date: string;
-  time: string;
-}>;
+// Map generated types to existing internal names for backward compatibility
+type Shipment = components["schemas"]["Package"];
+type ShipmentActivity = DeepPartial<components["schemas"]["Activity"]>;
 
 // prettier-ignore
 const statusCodes = reverseOneToManyDictionary({
@@ -111,12 +69,12 @@ const getTime = ({ date, time }: { date: string | undefined; time: string | unde
   return parsedDate.getTime();
 };
 
-const getStatus = (status: ShipmentPackage["status"]): TrackingStatus | undefined => {
-  if (!status) {
+const getStatus = (status: ShipmentActivity["status"]): TrackingStatus | undefined => {
+  if (!status || !status.type) {
     return;
   }
 
-  const trackingStatus = (status.type && statusCodes[status.type]) || undefined;
+  const trackingStatus = statusCodes[status.type as keyof typeof statusCodes];
 
   if (TrackingStatus.EXCEPTION === trackingStatus && status.description?.includes("DELIVERY ATTEMPTED")) {
     return TrackingStatus.DELIVERY_ATTEMPTED;
@@ -125,7 +83,7 @@ const getStatus = (status: ShipmentPackage["status"]): TrackingStatus | undefine
   return trackingStatus;
 };
 
-const getTrackingEvent = ({ date, location, status, time }: ShipmentPackage): TrackingEvent => ({
+const getTrackingEvent = ({ date, location, status, time }: ShipmentActivity): TrackingEvent => ({
   status: (status && getStatus(status)) || undefined,
   label: status?.description,
   location: getLocation({
@@ -221,7 +179,7 @@ export class UPSProvider extends BaseProvider {
       });
     }
 
-    const events = shipment.activity.map(getTrackingEvent);
+    const events = (shipment.activity || []).map(getTrackingEvent);
     const estimatedDeliveryTime = getEstimatedDeliveryTime(shipment);
 
     return { events, estimatedDeliveryTime };

@@ -9,14 +9,6 @@ export type { USPSProviderOptions, USPSUrl } from "./providers/usps-provider";
 
 // Middleware
 export type { Middleware, NextFunction } from "./middleware/types";
-export {
-  RateLimiterMiddleware,
-  CacheMiddleware,
-  MemoryCacheAdapter,
-  RetryMiddleware,
-  CircuitBreakerMiddleware,
-  LoggerMiddleware,
-} from "./middleware";
 export type {
   CacheAdapter,
   CacheOptions,

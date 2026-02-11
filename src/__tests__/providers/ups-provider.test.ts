@@ -31,6 +31,9 @@ describe("UPSProvider", () => {
 
   describe("parseResponse", () => {
     it("parses a successful response", () => {
+      // Note: Using `as any` to access protected methods for unit testing.
+      // These methods are not part of the public API but need testing to ensure
+      // proper error handling and response parsing behavior.
       const parsed = (provider as any).parseResponse(upsSuccess);
 
       expect(parsed.events).toHaveLength(4);

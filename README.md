@@ -187,13 +187,13 @@ Override defaults for specific providers:
 const tracker = createTracker({
   providers: {
     fedex: {
-      url: "https://apis-sandbox.fedex.com", // sandbox endpoint
+      url: "https://apis-sandbox.fedex.com", // instead of UPS url decided by process.env.NODE_ENV 
       creds: {
-        clientId: "custom-id",
-        clientSecret: "custom-secret"
+        clientId: "<client-id>", // instead of process.env.UPS_CLIENT_ID
+        clientSecret: "<client-secret>" // instead of process.env.UPS_CLIENT_SECRET
       }
     },
-    ups: true // use defaults from env vars
+    ups: true // enabled with defaults
   }
 });
 ```
@@ -216,7 +216,7 @@ export enum TrackingStatus {
 }
 ```
 
-**Note:** Provider URLs are automatically selected based on `process.env.NODE_ENV` (production or sandbox)
+**Note:** Provider URLs are automatically selected based on `process.env.NODE_ENV`
 
 ## OpenAPI Specifications
 

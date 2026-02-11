@@ -1,15 +1,24 @@
 {
   "name": "ts-shipment-tracking",
-  "version": "2.0.2",
+  "version": "3.0.0",
   "description": "Unified shipment tracking data from FedEx, UPS, and USPS APIs.",
   "main": "dist/index",
   "types": "dist/index",
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "prepublish": "npm run clean && tsc",
     "watch": "tsc -w",
     "clean": "rm -rf dist",
     "test": "npx jest",
-    "e2e": "set -x NODE_NO_WARNINGS 1; nodemon --watch . --watch .env e2e.ts"
+    "e2e": "set -x NODE_NO_WARNINGS 1; nodemon --watch . --watch .env e2e.ts",
+    "generate:types": "npm run generate:types:ups && npm run generate:types:fedex && npm run generate:types:usps",
+    "generate:types:ups": "openapi-typescript openapi/ups-tracking.yaml -o src/providers/generated/ups.ts",
+    "generate:types:fedex": "openapi-typescript openapi/fedex-tracking.json -o src/providers/generated/fedex.ts",
+    "generate:types:usps": "openapi-typescript openapi/usps-tracking.yaml -o src/providers/generated/usps.ts"
   },
   "repository": {
     "type": "git",
@@ -29,9 +38,11 @@
   "license": "MIT",
   "dependencies": {
     "axios": "^1.7.7",
+    "bottleneck": "^2.19.5",
     "date-fns": "^2.22.1",
     "ts-tracking-number": "^1.0.13",
-    "tycelium": "^0.1.0"
+    "tycelium": "^0.1.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tsconfig/node18": "^18.2.2",
@@ -39,6 +50,7 @@
     "@types/node": "^20.10.5",
     "dotenv": "^10.0.0",
     "jest": "^29.7.0",
+    "openapi-typescript": "^7.10.1",
     "prettier": "^2.3.2",
     "source-map-support": "^0.5.19",
     "ts-jest": "^29.1.1",

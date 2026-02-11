@@ -1,0 +1,42 @@
+{
+  "trackingNumber": "9400111899223100012927",
+  "expectedDeliveryTimeStamp": "2024-01-16T14:00:00Z",
+  "trackingEvents": [
+    {
+      "eventType": "Delivered, In/At Mailbox",
+      "eventCode": "01",
+      "eventCity": "RICHMOND",
+      "eventState": "VA",
+      "eventCountry": "US",
+      "eventZIP": "23220",
+      "eventTimestamp": "2024-01-15T19:30:12.041Z"
+    },
+    {
+      "eventType": "Out for Delivery",
+      "eventCode": "OF",
+      "eventCity": "RICHMOND",
+      "eventState": "VA",
+      "eventCountry": "US",
+      "eventZIP": "23220",
+      "eventTimestamp": "2024-01-15T11:00:00.000Z"
+    },
+    {
+      "eventType": "Arrived at Post Office",
+      "eventCode": "07",
+      "eventCity": "RICHMOND",
+      "eventState": "VA",
+      "eventCountry": "US",
+      "eventZIP": "23220",
+      "eventTimestamp": "2024-01-15T08:00:00.000Z"
+    },
+    {
+      "eventType": "USPS in possession of item",
+      "eventCode": "MA",
+      "eventCity": "LOS ANGELES",
+      "eventState": "CA",
+      "eventCountry": "US",
+      "eventZIP": "90001",
+      "eventTimestamp": "2024-01-13T14:00:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "trackResponse": {
+    "shipment": [
+      {
+        "package": [
+          {
+            "activity": [
+              {
+                "status": {
+                  "description": "DELIVERY ATTEMPTED - NO ACCESS TO DELIVERY LOCATION",
+                  "type": "X"
+                },
+                "location": {
+                  "address": {
+                    "city": "NEW YORK",
+                    "stateProvince": "NY",
+                    "countryCode": "US",
+                    "postalCode": "10001"
+                  }
+                },
+                "date": "20240115",
+                "time": "143000"
+              }
+            ],
+            "deliveryDate": [],
+            "deliveryTime": {
+              "endTime": "",
+              "startTime": "",
+              "type": ""
+            },
+            "statusCode": "X",
+            "trackingNumber": "1Z999AA10123456784"
+          }
+        ],
+        "warnings": []
+      }
+    ]
+  }
+}

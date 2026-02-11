@@ -1,0 +1,10 @@
+{
+  "response": {
+    "errors": [
+      {
+        "code": "TRK001",
+        "message": "Tracking Information Not Found"
+      }
+    ]
+  }
+}

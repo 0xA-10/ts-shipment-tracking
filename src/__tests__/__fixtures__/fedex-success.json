@@ -1,0 +1,73 @@
+{
+  "output": {
+    "completeTrackResults": [
+      {
+        "trackingNumber": "123456789012",
+        "trackResults": [
+          {
+            "scanEvents": [
+              {
+                "eventType": "DL",
+                "eventDescription": "Delivered",
+                "scanLocation": {
+                  "city": "RICHMOND",
+                  "stateOrProvinceCode": "VA",
+                  "countryCode": "US",
+                  "postalCode": "23220"
+                },
+                "date": "2024-01-15T14:30:00-05:00"
+              },
+              {
+                "eventType": "OD",
+                "eventDescription": "On FedEx vehicle for delivery",
+                "scanLocation": {
+                  "city": "RICHMOND",
+                  "stateOrProvinceCode": "VA",
+                  "countryCode": "US",
+                  "postalCode": "23220"
+                },
+                "date": "2024-01-15T06:00:00-05:00"
+              },
+              {
+                "eventType": "IT",
+                "eventDescription": "In transit",
+                "scanLocation": {
+                  "city": "MEMPHIS",
+                  "stateOrProvinceCode": "TN",
+                  "countryCode": "US",
+                  "postalCode": "38118"
+                },
+                "date": "2024-01-14T10:00:00-06:00"
+              },
+              {
+                "eventType": "PU",
+                "eventDescription": "Picked up",
+                "scanLocation": {
+                  "city": "LOS ANGELES",
+                  "stateOrProvinceCode": "CA",
+                  "countryCode": "US",
+                  "postalCode": "90001"
+                },
+                "date": "2024-01-13T09:00:00-08:00"
+              }
+            ],
+            "estimatedDeliveryTimeWindow": {
+              "window": {
+                "begins": "2024-01-15T08:00:00",
+                "ends": "2024-01-15T20:00:00"
+              },
+              "type": "ESTIMATED_DELIVERY"
+            },
+            "standardTransitTimeWindow": {
+              "window": {
+                "begins": "2024-01-16T08:00:00",
+                "ends": "2024-01-16T20:00:00"
+              },
+              "type": "ESTIMATED_DELIVERY"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

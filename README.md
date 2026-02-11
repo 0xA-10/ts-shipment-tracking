@@ -26,7 +26,7 @@ $ npm install ts-shipment-tracking
 import { createTracker } from "ts-shipment-tracking";
 
 const tracker = createTracker({
-  providers: { fedex: true, ups: true, usps: true }
+  providers: { fedex: true, ups: true, usps: true },
   // Rate limiting, retries, and circuit breaker enabled by default
 });
 
@@ -51,7 +51,7 @@ import "dotenv/config";
 import { createTracker, TrackingResult } from "ts-shipment-tracking";
 
 const tracker = createTracker({
-  providers: { fedex: true, ups: true, usps: true }
+  providers: { fedex: true, ups: true, usps: true },
 });
 
 (async () => {
@@ -105,6 +105,7 @@ Example output:
 **Default Middlewares:**
 
 The following middleware is enabled by default for production resilience:
+
 - `rateLimiter` - Per-courier rate limiting (FedEx/USPS: 5 req/sec, UPS: 3 req/sec)
 - `retry` - Exponential backoff retry (3 attempts on 429/5xx errors)
 - `circuitBreaker` - Prevent cascading failures (opens after 5 failures)
@@ -117,10 +118,10 @@ import { createTracker } from "ts-shipment-tracking";
 const tracker = createTracker({
   providers: { fedex: true },
   middlewares: {
-    rateLimiter: false,  // disable rate limiting
-    retry: false,         // disable retries
-    circuitBreaker: false // disable circuit breaker
-  }
+    rateLimiter: false, // disable rate limiting
+    retry: false, // disable retries
+    circuitBreaker: false, // disable circuit breaker
+  },
 });
 ```
 
@@ -132,17 +133,18 @@ const tracker = createTracker({
   middlewares: {
     rateLimiter: {
       limits: {
-        fedex: { maxConcurrent: 10, minTime: 100 } // custom FedEx limit
-      }
+        fedex: { maxConcurrent: 10, minTime: 100 }, // custom FedEx limit
+      },
     },
     retry: { maxAttempts: 5 }, // more aggressive retries
-    cache: true,                // opt-in to caching
-    logger: true                // opt-in to logging
-  }
+    cache: true, // opt-in to caching
+    logger: true, // opt-in to logging
+  },
 });
 ```
 
 **Available middleware:**
+
 - `rateLimiter` - Per-courier rate limiting (**enabled by default**)
 - `retry` - Exponential backoff retry (**enabled by default**)
 - `circuitBreaker` - Prevent cascading failures (**enabled by default**)
@@ -156,7 +158,7 @@ Track multiple shipments at once:
 ```ts
 const results = await tracker.trackBatch([
   { trackingNumber: "1Z999AA10123456784", courierCode: "ups" },
-  { trackingNumber: "123456789012" } // auto-detect
+  { trackingNumber: "123456789012" }, // auto-detect
 ]);
 
 results.forEach(({ trackingNumber, result, error }) => {
@@ -187,14 +189,14 @@ Override defaults for specific providers:
 const tracker = createTracker({
   providers: {
     fedex: {
-      url: "https://apis-sandbox.fedex.com", // instead of UPS url decided by process.env.NODE_ENV 
+      url: "https://apis-sandbox.fedex.com", // otherwise gets chosen based on process.env.NODE_ENV
       creds: {
-        clientId: "<client-id>", // instead of process.env.UPS_CLIENT_ID
-        clientSecret: "<client-secret>" // instead of process.env.UPS_CLIENT_SECRET
-      }
+        clientId: "<client-id>", // otherwise uses process.env.UPS_CLIENT_ID
+        clientSecret: "<client-secret>", // otherwise uses process.env.UPS_CLIENT_SECRET
+      },
     },
-    ups: true // enabled with defaults
-  }
+    ups: true, // enabled with defaults
+  },
 });
 ```
 
@@ -215,8 +217,6 @@ export enum TrackingStatus {
   DELIVERED = "DELIVERED",
 }
 ```
-
-**Note:** Provider URLs are automatically selected based on `process.env.NODE_ENV`
 
 ## OpenAPI Specifications
 
